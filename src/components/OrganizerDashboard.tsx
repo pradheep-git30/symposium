@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react';
-import { supabase, Registration } from '../lib/supabase';
 import { LogOut, Download, Eye, Users, Calendar } from 'lucide-react';
+
+interface Registration {
+  _id: string;
+  name: string;
+  college_name: string;
+  email: string;
+  course_of_study: string;
+  whatsapp_number: string;
+  selected_events: string[];
+  transaction_id: string;
+  payment_proof_url: string;
+  created_at: string;
+}
 
 const ORGANIZER_PASSWORD = 'ecs nova';
 
@@ -31,13 +43,18 @@ export default function OrganizerDashboard() {
   const fetchRegistrations = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('registrations')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/registrations`);
 
-      if (error) throw error;
-      setRegistrations(data || []);
+      if (!response.ok) {
+        throw new Error('Failed to fetch registrations');
+      }
+
+      const data = await response.json();
+      const sorted = data.sort((a: Registration, b: Registration) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setRegistrations(sorted);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch registrations');
     } finally {
@@ -212,7 +229,7 @@ export default function OrganizerDashboard() {
                   <tbody>
                     {registrations.map((reg, index) => (
                       <tr
-                        key={reg.id}
+                        key={reg._id}
                         className={`border-b ${
                           index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                         } hover:bg-blue-50 transition-colors`}

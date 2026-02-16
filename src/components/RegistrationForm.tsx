@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { submitRegistration, uploadPaymentProof } from '../services/api';
 import { Calendar, MapPin, Award, Upload, CheckCircle } from 'lucide-react';
 
 const EVENTS = [
@@ -50,25 +50,12 @@ export default function RegistrationForm() {
         throw new Error('Please upload payment proof');
       }
 
-      const fileExt = paymentProof.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const paymentProofUrl = await uploadPaymentProof(paymentProof);
 
-      const { error: uploadError } = await supabase.storage
-        .from('payment-proofs')
-        .upload(fileName, paymentProof);
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('payment-proofs')
-        .getPublicUrl(fileName);
-
-      const { error: insertError } = await supabase.from('registrations').insert({
+      await submitRegistration({
         ...formData,
-        payment_proof_url: urlData.publicUrl,
+        payment_proof_url: paymentProofUrl,
       });
-
-      if (insertError) throw insertError;
 
       setSuccess(true);
       setFormData({
